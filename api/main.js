@@ -78,6 +78,32 @@ const ud = async (chat, text, reply_to) => {
     await send_message(parseInt(chat.id), answer, parseInt(reply_to), true);
 };
 
+const kym = async (chat, text, reply_to) => {
+    text = text.replace('/kym ', '').replace(' ', '+');
+
+	let answer = '';
+
+	try {
+		let res = await fetch(`https://knowyourmeme.com/search?q=${text}`);
+		let $ = cheerio.load(await res.text());
+		const router = $('.entry_list a').first().attr('href');
+	
+		res = await fetch(`https://knowyourmeme.com${router}`);
+		$ = cheerio.load(await res.text());
+		const definition = $('.bodycopy p').first().text();
+
+		if (definition !== 'About') {
+			answer = definition;
+		} else {
+			answer = $('.bodycopy p').next().text();
+		}
+	} catch (error) {
+		answer = 'No meme found';
+	}
+
+    await send_message(parseInt(chat.id), answer, parseInt(reply_to), true);
+};
+
 module.exports = async (req, res) => {
 	if (!req.body) {
 		res.status(200).send('Ok');
@@ -125,6 +151,10 @@ module.exports = async (req, res) => {
 
 	if (text.startsWith("/ud")) {
 		await ud(chat, text, reply_to);
+	}
+
+	if (text.startsWith("/kym")) {
+		await kym(chat, text, reply_to);
 	}
 
 	res.status(200).send('Ok');
