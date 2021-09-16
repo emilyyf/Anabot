@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const cheerio = require('cheerio');
 
 const api_url = 'https://api.telegram.org/bot' + process.env.BOT_TOKEN;
 
@@ -53,6 +54,30 @@ const roll = async (chat, text, message_id, username) => {
 	await send_message(parseInt(chat.id), answer, parseInt(message_id), true);
 }
 
+const ud = async (chat, text, reply_to) => {
+    text = text.replace('/ud ', '').replace(' ', '+');
+
+	let answer = '';
+
+	try {
+		const res = await fetch(`https://www.urbandictionary.com/define.php?term=${text}`);
+		const $ = cheerio.load(await res.text());
+		const word = $('.word').first().text();
+		const definition = $('.meaning').first().text();
+		const example = $('.example').first().text();
+	
+		if (word !== '') {
+			answer = `${word} definition: ${definition}\n\nExample: ${example}`;
+		} else {
+			answer = 'No definition found';
+		}
+	} catch (error) {
+		answer = 'An unexpected error has occurred'
+	}
+
+    await send_message(parseInt(chat.id), answer, parseInt(reply_to), true);
+};
+
 module.exports = async (req, res) => {
 	if (!req.body) {
 		res.status(200).send('Ok');
@@ -69,6 +94,7 @@ module.exports = async (req, res) => {
 	const { chat, text, from } = message;
 	const { reply_to_message, message_id } = message;
 	const { username } = from;
+	const reply_to = (reply_to_message) ? reply_to_message.message_id : message_id;
 	const reply = (reply_to_message) ? reply_to_message.from : undefined;
 	if (reply) reply.text = reply_to_message.text;
 	if (reply) reply.date = reply_to_message.date;
@@ -95,6 +121,10 @@ module.exports = async (req, res) => {
 
 	if (text.startsWith('/roll')) {
 		await roll(chat, text, message_id, username);
+	}
+
+	if (text.startsWith("/ud")) {
+		await ud(chat, text, reply_to);
 	}
 
 	res.status(200).send('Ok');
