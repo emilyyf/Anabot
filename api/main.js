@@ -1,7 +1,17 @@
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
+const mongo_client = require('mongodb').MongoClient;
 
 const api_url = 'https://api.telegram.org/bot' + process.env.BOT_TOKEN;
+let cachedDB = null;
+
+const connectToDB = async () => {
+	if (cachedDB) return cachedDB;
+	const client = await (new mongo_client(process.env.DB_URI, { useNewUrlParser: true })).connect();
+	const db = client.db(process.env.DB_NAME);
+	cachedDB = db;
+	return db;
+};
 
 const send_message = async (id, data, id_reply, do_not_parse) => {
 	return await fetch(api_url + '/sendMessage', {
@@ -104,6 +114,21 @@ const kym = async (chat, text, reply_to) => {
     await send_message(parseInt(chat.id), answer, parseInt(reply_to), true);
 };
 
+const get_quote = async (quote_id) => {
+	const cursor = cachedDB.collection('quotes').find({id: quote_id});
+	const results = await cursor.toArray();
+	if (results.length <= 0) return -1;
+	return results[0]['quote'];
+};
+
+const quote = async (chat, text, reply_to) => {
+	let quote_id = Number(text.split(' ')[1]) || -1;
+	if (quote_id === -1) return;
+	answer = await get_quote(quote_id).catch(console.error);
+	if (answer === -1) answer = 'Couldn\'t found that quote ( _ _)';
+	await send_message(parseInt(chat.id), answer, parseInt(reply_to), true);
+}
+
 module.exports = async (req, res) => {
 	if (!req.body) {
 		res.status(200).send('Ok');
@@ -155,6 +180,12 @@ module.exports = async (req, res) => {
 
 	if (text.startsWith("/kym")) {
 		await kym(chat, text, reply_to);
+	}
+
+	await connectToDB();
+
+	if (text.startsWith('/quote')) {
+		await quote(chat, text, reply_to);
 	}
 
 	res.status(200).send('Ok');
