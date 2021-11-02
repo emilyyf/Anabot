@@ -124,12 +124,28 @@ const get_quote = async (quote_id) => {
 	return results[0]['quote'];
 };
 
+const insert_quote = async (quote_text) => {
+	const quotes_collection = cachedDB.collection('quotes');
+	const new_id = parseInt(await quotes_collection.countDocuments()) + 1;
+	await quotes_collection.insertOne(
+	  { 'id' : new_id, 'quote' : quote_text, 'count' : 0 });
+	return new_id;
+};
+
 const quote = async (chat, text, reply_to) => {
 	let answer     = '';
 	const quote_id = Number(text.split(' ')[1]) || -1;
 	if (quote_id === -1) return;
 	answer = await get_quote(quote_id).catch(console.error);
 	if (answer === -1) answer = 'Couldn\'t found that quote ( _ _)';
+	await send_message(parseInt(chat.id), answer, parseInt(reply_to), true);
+};
+
+const addquote = async (chat, text, reply, reply_to) => {
+	const quote_text = reply ? reply.text : text.replace('/addquote', '');
+	const quote_id   = await insert_quote(quote_text);
+	const answer     = `Quote #${quote_id} added!\n${quote_text}`;
+
 	await send_message(parseInt(chat.id), answer, parseInt(reply_to), true);
 };
 
@@ -186,6 +202,10 @@ module.exports = async (req, res) => {
 	await connectToDB();
 
 	if (text.startsWith('/quote')) { await quote(chat, text, reply_to); }
+
+	if (text.startsWith('/addquote')) {
+		await addquote(chat, text, reply, reply_to);
+	}
 
 	res.status(200).send('Ok');
 };
