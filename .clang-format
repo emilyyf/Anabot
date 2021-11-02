@@ -48,4 +48,4 @@ SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 TabWidth: 2
-UseTab: ForContinuationAndIndentation
+UseTab: ForIndentation

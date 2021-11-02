@@ -1,6 +1,10 @@
+/*eslint no-useless-escape: "off"*/
+/*eslint no-mixed-spaces-and-tabs: "off"*/
+
 const fetch        = require('node-fetch');
 const cheerio      = require('cheerio');
 const mongo_client = require('mongodb').MongoClient;
+const process      = require('process');
 
 const api_url = 'https://api.telegram.org/bot' + process.env.BOT_TOKEN;
 let cachedDB  = null;
@@ -8,8 +12,8 @@ let cachedDB  = null;
 const connectToDB = async () => {
 	if (cachedDB) return cachedDB;
 	const client =
-		await (new mongo_client(process.env.DB_URI, { useNewUrlParser : true }))
-			.connect();
+	  await (new mongo_client(process.env.DB_URI, { useNewUrlParser : true }))
+	    .connect();
 	const db = client.db(process.env.DB_NAME);
 	cachedDB = db;
 	return db;
@@ -17,16 +21,16 @@ const connectToDB = async () => {
 
 const send_message = async (id, data, id_reply, do_not_parse) => {
 	return await fetch(api_url + '/sendMessage', {
-					 method : 'POST',
-					 headers : { 'Content-Type' : 'application/json' },
-					 body : JSON.stringify({
-						 chat_id : id,
-						 text : data,
-						 reply_to_message_id : id_reply,
-						 parse_mode : do_not_parse ? undefined : 'Markdown'
-					 })
-				 })
-		.then(res => console.log(res.json()));
+		       method : 'POST',
+		       headers : { 'Content-Type' : 'application/json' },
+		       body : JSON.stringify({
+			       chat_id : id,
+			       text : data,
+			       reply_to_message_id : id_reply,
+			       parse_mode : do_not_parse ? undefined : 'Markdown'
+		       })
+	       })
+	  .then(res => console.log(res.json()));
 };
 
 const sed = async (chat, text, reply, reply_to_message) => {
@@ -56,7 +60,7 @@ const roll = async (chat, text, message_id, username) => {
 	if (res.length < 3) return;
 	var answer = username + ' rolls [';
 	var sum    = 0;
-	for (i = 0; i < res[1]; ++i) {
+	for (let i = 0; i < res[1]; ++i) {
 		const buf = Math.floor(Math.random() * res[2] + 1);
 		answer += ' ' + buf + ',';
 		sum += buf;
@@ -73,7 +77,7 @@ const ud = async (chat, text, reply_to) => {
 
 	try {
 		const res =
-			await fetch(`https://www.urbandictionary.com/define.php?term=${text}`);
+		  await fetch(`https://www.urbandictionary.com/define.php?term=${text}`);
 		const $          = cheerio.load(await res.text());
 		const word       = $('.word').first().text();
 		const definition = $('.meaning').first().text();
@@ -84,7 +88,7 @@ const ud = async (chat, text, reply_to) => {
 		} else {
 			answer = 'No definition found';
 		}
-	} catch (error) { answer = 'An unexpected error has occurred' }
+	} catch (error) { answer = 'An unexpected error has occurred'; }
 
 	await send_message(parseInt(chat.id), answer, parseInt(reply_to), true);
 };
@@ -121,7 +125,8 @@ const get_quote = async (quote_id) => {
 };
 
 const quote = async (chat, text, reply_to) => {
-	let quote_id = Number(text.split(' ')[1]) || -1;
+	let answer     = '';
+	const quote_id = Number(text.split(' ')[1]) || -1;
 	if (quote_id === -1) return;
 	answer = await get_quote(quote_id).catch(console.error);
 	if (answer === -1) answer = 'Couldn\'t found that quote ( _ _)';
@@ -145,7 +150,7 @@ module.exports = async (req, res) => {
 	const { reply_to_message, message_id } = message;
 	const { username }                     = from;
 	const reply_to =
-		(reply_to_message) ? reply_to_message.message_id : message_id;
+	  (reply_to_message) ? reply_to_message.message_id : message_id;
 	const reply = (reply_to_message) ? reply_to_message.from : undefined;
 	if (reply) reply.text = reply_to_message.text;
 	if (reply) reply.date = reply_to_message.date;
