@@ -25,7 +25,8 @@
             "error",
             "always"
         ],
-        "prefer-const": "error"
-
+        "prefer-const": "error",
+        "no-mixed-spaces-and-tabs": "off",
+        "no-useless-escape": "off"
     }
 }
